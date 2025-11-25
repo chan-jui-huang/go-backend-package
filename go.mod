@@ -1,6 +1,6 @@
 module github.com/chan-jui-huang/go-backend-package
 
-go 1.24.4
+go 1.25.4
 
 require (
 	github.com/ClickHouse/clickhouse-go/v2 v2.37.1
