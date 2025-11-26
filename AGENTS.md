@@ -359,6 +359,82 @@ go-backend-package/
    → Release published with auto-generated notes
 ```
 
+### Commit Convention: Conventional Commits 1.0.0
+
+This project follows [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/#specification) for standardized commit messages.
+
+**Format**:
+```
+<type>[optional scope]: <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+**Type** (required):
+- `feat` - New feature
+- `fix` - Bug fix
+- `docs` - Documentation only
+- `style` - Code style changes (formatting, missing semicolons, etc.)
+- `refactor` - Code refactoring without feature/bug changes
+- `perf` - Performance improvements
+- `test` - Test additions or modifications
+- `chore` - Build, CI/CD, dependency updates
+- `ci` - CI/CD configuration changes
+
+**Scope** (optional):
+- Package or component name: `feat(logger)`, `fix(database)`, `docs(pagination)`
+
+**Description** (required):
+- Imperative mood: use "add" not "added", "fix" not "fixed"
+- No capitalization, no period at end
+- Short summary: ~50 characters
+
+**Body** (optional):
+- Motivates the change and contrasts with previous behavior
+- Separated by blank line from description
+- Wrapped at 72 characters
+
+**Footer** (optional):
+- Reference issues: `Closes #123`, `Fixes #456`
+- Breaking changes: `BREAKING CHANGE: description`
+
+**Examples**:
+```
+feat(authentication): add JWT token refresh endpoint
+
+Implement automatic token refresh mechanism for better user experience.
+Tokens now refresh automatically when 80% expired.
+
+Closes #89
+```
+
+```
+fix(database): resolve connection pool leak on error
+
+Previously, failed connections weren't properly returned to the pool,
+causing gradual pool exhaustion. Now all paths return connections.
+
+Fixes #124
+```
+
+```
+docs: update quickstart guide with scheduler examples
+```
+
+```
+chore(deps): upgrade Go to 1.25.4
+```
+
+**Branch Naming Convention** (aligns with commit type):
+- Feature: `feat/my-feature`
+- Fix: `fix/issue-description` or `hotfix/critical-bug`
+- Documentation: `docs/component-guide`
+- Chore: `chore/dependency-update`
+- Testing: `test/auth-coverage`
+- Refactoring: `refactor/registry-pattern`
+
 ---
 
 ## Usage Example: Application Bootstrap
