@@ -126,7 +126,7 @@ func loadEnv() {
 5. **ASYNC**: Background tasks (independent goroutines)
 6. **TERMINATED**: Sequential, blocking cleanup on shutdown
 
-See [CLAUDE.md](CLAUDE.md) for detailed lifecycle diagram.
+See [AGENTS.md](AGENTS.md) for detailed lifecycle diagram.
 
 ## Common Commands
 
@@ -257,7 +257,7 @@ See [go.mod](go.mod) for complete dependency list.
 
 ## Documentation
 
-- **[CLAUDE.md](CLAUDE.md)**: Detailed architecture, design patterns, and advanced usage
+- **[AGENTS.md](AGENTS.md)**: Detailed architecture, design patterns, and advanced usage
 - **[LICENSE](LICENSE)**: Apache 2.0
 
 ## Examples
@@ -326,4 +326,4 @@ Apache License 2.0 - see [LICENSE](LICENSE) file for details.
 ## References
 
 - [Go Backend Framework](https://github.com/chan-jui-huang/go-backend-framework)
-- [CLAUDE.md](CLAUDE.md) - Detailed developer guide
+- [AGENTS.md](AGENTS.md) - Detailed developer guide
