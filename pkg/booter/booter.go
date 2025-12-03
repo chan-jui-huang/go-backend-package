@@ -14,15 +14,13 @@ type Config struct {
 	RootDir        string
 	ConfigFileName string
 	Debug          bool
-	Testing        bool
 }
 
-func NewConfig(rootDir string, configFileName string, debug bool, testing bool) *Config {
+func NewConfig(rootDir string, configFileName string, debug bool) *Config {
 	return &Config{
 		RootDir:        rootDir,
 		ConfigFileName: configFileName,
 		Debug:          debug,
-		Testing:        testing,
 	}
 }
 
@@ -35,14 +33,12 @@ func NewConfigWithCommand() *Config {
 	var rootDir string
 	var configFileName string
 	var debug bool
-	var testing bool
 	flag.StringVar(&rootDir, "rootDir", wd, "root directory which the executable file in")
 	flag.StringVar(&configFileName, "configFileName", "config.yml", "config file name")
 	flag.BoolVar(&debug, "debug", false, "debug mode")
-	flag.BoolVar(&testing, "testing", false, "does run in testing mode")
 	flag.Parse()
 
-	return NewConfig(rootDir, configFileName, debug, testing)
+	return NewConfig(rootDir, configFileName, debug)
 }
 
 func NewDefaultConfig() *Config {
@@ -51,7 +47,7 @@ func NewDefaultConfig() *Config {
 		panic(err)
 	}
 
-	return NewConfig(wd, "config.yml", false, false)
+	return NewConfig(wd, "config.yml", false)
 }
 
 type NewConfigFunc func() *Config
