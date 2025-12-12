@@ -606,3 +606,7 @@ pagination.Execute(&users)
 - Lifecycle callbacks for orchestration
 
 **Best Used For**: Building RESTful APIs, microservices, CLIs requiring structured logging, databases, auth, scheduling, and graceful lifecycle management.
+
+## Code Modification Rules
+- **Strict Scope:** Do NOT modify code that you were not explicitly asked to change. You may suggest improvements for other parts of the code, but do not apply them without clear confirmation.
+- **Focus:** maintain strict focus on the specific code segments relevant to the user's request.

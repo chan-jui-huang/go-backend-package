@@ -17,9 +17,9 @@ type Paginator struct {
 }
 
 type PaginationRequest struct {
-	Page    int    `form:"page" schema:"page" binding:"required" validate:"min=1"`
-	PerPage int    `form:"per_page" schema:"per_page" binding:"required" validate:"min=10"`
-	OrderBy string `form:"order_by" schema:"order_by" validate:"omitempty"`
+	Page    int    `form:"page" schema:"page" binding:"required,gt=0"`
+	PerPage int    `form:"per_page" schema:"per_page" binding:"required,min=10"`
+	OrderBy string `form:"order_by" schema:"order_by"`
 }
 
 type PaginationResponse struct {
