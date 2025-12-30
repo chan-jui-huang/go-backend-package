@@ -61,7 +61,8 @@ func NewPgSqlDatabase(config Config, gConfig *gorm.Config) *gorm.DB {
 }
 
 func NewSqliteDatabase(config Config, gConfig *gorm.Config) *gorm.DB {
-	db, err := gorm.Open(sqlite.Open(config.Database), gConfig)
+	dsn := fmt.Sprintf("%s?_foreign_keys=1", config.Database)
+	db, err := gorm.Open(sqlite.Open(dsn), gConfig)
 	if err != nil {
 		panic(err)
 	}
