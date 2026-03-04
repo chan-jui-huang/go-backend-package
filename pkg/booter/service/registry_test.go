@@ -12,7 +12,7 @@ type testService struct {
 	Name string
 }
 
-func TestRegistrySetGetCloneUnset(t *testing.T) {
+func TestRegistry_SetGetCloneUnset(t *testing.T) {
 	r := NewRegistry()
 
 	svc := &testService{Name: "alpha"}
@@ -33,7 +33,7 @@ func TestRegistrySetGetCloneUnset(t *testing.T) {
 	assert.NotNil(t, r.Get("a"))
 }
 
-func TestRegistryConcurrentSetGet(t *testing.T) {
+func TestRegistry_ConcurrentSetGet(t *testing.T) {
 	r := NewRegistry()
 
 	for i := 0; i < 100; i++ {
