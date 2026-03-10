@@ -19,47 +19,35 @@ make linter    # Run golangci-lint (5-min timeout, checks: errcheck, gosec)
 
 ## Architecture Overview
 
-### Core Pattern: Dual-Registry System
+### Core Pattern: Config Loader
 
-The application uses two global singleton registries for dependency injection:
+The `booter` package now focuses only on configuration loading:
 
-1. **Config Registry** (`pkg/booter/config/registry.go`)
-   - Stores configuration objects unmarshaled from YAML via Viper
-   - Enforces pointer types via reflection
+1. **Config Loader** (`pkg/booter/config/loader.go`)
+   - Wraps `viper.Viper` for configuration unmarshaling
    - Supports environment variable expansion (`${VAR_NAME}`) in YAML
-   - Accessed: `config.Registry.Get(key)`, `config.Registry.Register(key, configStruct)`
-
-2. **Service Registry** (`pkg/booter/service/registry.go`)
-   - Stores initialized service instances (pointers or functions)
-   - Dependency injection container for the application
-   - `Clone()` returns dereferenced copy; `Get()` returns raw value
-   - Accessed: `service.Registry.Set(key, instance)`, `service.Registry.Get(key)`
+   - Exposes `Unmarshal(key, config)` and `UnmarshalMany(configs)`
+   - Created via `config.New(v)` and usually obtained from `booter.BootConfigLoader(...)`
 
 ### Bootstrap Flow
 
-The `booter` package orchestrates startup via `Registrar` interface pattern:
+The `booter` package builds a config loader from YAML:
 
 ```
-Boot() {
-    loadEnvFunc()           // Load environment (user-provided function)
-    bootConfigRegistry()    // Parse YAML config (with env expansion)
-    registrarCenter.BeforeExecute()  // Pre-init hook
-    registrarCenter.Execute() {      // For each Registrar:
-        registrar.Boot()             //   Initialize component
-        registrar.Register()         //   Register with registries
-    }
-    registrarCenter.AfterExecute()  // Post-init hook
+BootConfigLoader() {
+    read config file
+    expand environment variables
+    parse yaml with viper
+    return config loader
 }
 ```
 
-**Key interfaces**:
-- `Registrar`: Boot() + Register() - implemented by components for modular initialization
-- `RegisterExecutor`: BeforeExecute() + Execute() + AfterExecute() - lifecycle hooks around registrar execution
-
 **Configuration Loading**:
 - YAML file: `{rootDir}/{configFileName}` (default: `./config.yml`)
-- CLI flags: `--rootDir`, `--configFileName`, `--debug`, `--testing`
-- Config registry stores booter config: `config.Registry.Get("booter")` → `*booter.Config`
+- CLI flags: `--rootDir`, `--configFileName`, `--debug`
+- Typical usage:
+  `loader := booter.BootConfigLoader(booter.NewConfigWithCommand())`
+  `loader.Unmarshal("database", &database.Config{})`
 
 ---
 
@@ -443,31 +431,15 @@ chore(deps): upgrade Go to 1.25.4
 package main
 
 import (
-    "os"
     "github.com/chan-jui-huang/go-backend-package/pkg/app"
     "github.com/chan-jui-huang/go-backend-package/pkg/booter"
-    "github.com/chan-jui-huang/go-backend-package/pkg/booter/config"
-    "github.com/chan-jui-huang/go-backend-package/pkg/booter/service"
+    "github.com/chan-jui-huang/go-backend-package/pkg/database"
 )
 
-// Define registrars
-type MyRegistrar struct{}
-
-func (r *MyRegistrar) Boot() {
-    // Initialize components (database, logger, etc.)
-}
-
-func (r *MyRegistrar) Register() {
-    // Register services with service.Registry
-}
-
 func main() {
-    // Bootstrap: load config, initialize services
-    booter.Boot(
-        loadEnv,                            // User function to load .env
-        booter.NewConfigWithCommand,        // Parse CLI flags
-        booter.NewRegistrarCenter([]booter.Registrar{&MyRegistrar{}}),
-    )
+    loader := booter.BootConfigLoader(booter.NewConfigWithCommand())
+    dbConfig := &database.Config{}
+    loader.Unmarshal("database", dbConfig)
 
     // Define lifecycle callbacks
     myApp := app.New(
@@ -481,7 +453,7 @@ func main() {
     // Run application
     myApp.Run(func() {
         // Main application logic
-        // Access services: service.Registry.Get("myService")
+        _ = dbConfig
     })
 }
 ```
@@ -490,76 +462,27 @@ func main() {
 
 ## Quick Reference: Common Patterns
 
-### Access Config/Services
+### Access Config
 ```go
-// Get config
-dbConfig := config.Registry.Get("database").(*database.Config)
-
-// Get service
-db := service.Registry.Get("db").(*gorm.DB)
-
-// Clone service (dereferenced copy)
-clonedService := service.Registry.Clone("service").(*MyService)
+loader := booter.BootConfigLoader(booter.NewConfigWithCommand())
+dbConfig := &database.Config{}
+loader.Unmarshal("database", dbConfig)
 ```
 
-### Initialize & Register a Service Group
+### Initialize Components From Config
 ```go
-// DatabaseRegistrar - registers database service
-type DatabaseRegistrar struct{}
+loader := booter.BootConfigLoader(booter.NewConfigWithCommand())
 
-func (r *DatabaseRegistrar) Boot() {
-    // Initialize database connections, migrations, etc.
-}
+dbConfig := &database.Config{}
+loader.Unmarshal("database", dbConfig)
+db := database.New(dbConfig)
 
-func (r *DatabaseRegistrar) Register() {
-    dbConfig := config.Registry.Get("database").(*database.Config)
-    db := database.New(dbConfig)
-    service.Registry.Set("db", db)
-}
-```
+authConfig := &authentication.Config{}
+loader.Unmarshal("authentication", authConfig)
+auth, _ := authentication.NewAuthenticator(authConfig)
 
-```go
-// AuthenticationRegistrar - registers auth service
-type AuthenticationRegistrar struct{}
-
-func (r *AuthenticationRegistrar) Boot() {
-    // Pre-auth setup if needed
-}
-
-func (r *AuthenticationRegistrar) Register() {
-    authConfig := config.Registry.Get("authentication").(*authentication.Config)
-    auth, _ := authentication.NewAuthenticator(authConfig)
-    service.Registry.Set("auth", auth)
-}
-```
-
-```go
-// SchedulerRegistrar - registers scheduler with jobs
-type SchedulerRegistrar struct{}
-
-func (r *SchedulerRegistrar) Boot() {
-    // Initialize job definitions
-}
-
-func (r *SchedulerRegistrar) Register() {
-    scheduler.Scheduler.BacklogJobs(map[string]scheduler.Job{
-        "cleanup": &CleanupJob{},
-        "sync":    &SyncJob{},
-    })
-}
-```
-
-Then in main():
-```go
-booter.Boot(
-    loadEnv,
-    booter.NewConfigWithCommand,
-    booter.NewRegistrarCenter([]booter.Registrar{
-        &DatabaseRegistrar{},
-        &AuthenticationRegistrar{},
-        &SchedulerRegistrar{},
-    }),
-)
+_ = db
+_ = auth
 ```
 
 ### Schedule Jobs
@@ -601,8 +524,7 @@ pagination.Execute(&users)
 - ✅ Production-ready (connection pooling, log rotation, graceful shutdown)
 
 **Core Abstractions**:
-- Dual-registry DI system (config + services)
-- Registrar plugin pattern for modular startup
+- Config loader built on top of Viper
 - Lifecycle callbacks for orchestration
 
 **Best Used For**: Building RESTful APIs, microservices, CLIs requiring structured logging, databases, auth, scheduling, and graceful lifecycle management.

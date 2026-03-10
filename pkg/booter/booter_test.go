@@ -1,29 +1,95 @@
 package booter
 
 import (
+	"flag"
 	"os"
 	"path/filepath"
 	"testing"
-
-	"github.com/chan-jui-huang/go-backend-package/pkg/booter/config"
 )
 
-// package-level mocks
-type mockRegistrar struct {
-	name  string
-	calls *[]string
+func TestNewConfig(t *testing.T) {
+	cfg := NewConfig("/tmp/project", "custom.yml", true)
+
+	if cfg.RootDir != "/tmp/project" {
+		t.Fatalf("expected RootDir to be /tmp/project, got %s", cfg.RootDir)
+	}
+	if cfg.ConfigFileName != "custom.yml" {
+		t.Fatalf("expected ConfigFileName to be custom.yml, got %s", cfg.ConfigFileName)
+	}
+	if !cfg.Debug {
+		t.Fatalf("expected Debug to be true")
+	}
 }
 
-func (m *mockRegistrar) Boot()     { *m.calls = append(*m.calls, m.name+":Boot") }
-func (m *mockRegistrar) Register() { *m.calls = append(*m.calls, m.name+":Register") }
+func TestNewDefaultConfig(t *testing.T) {
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
 
-type mockExec struct{ seq *[]string }
+	cfg := NewDefaultConfig()
 
-func (m *mockExec) BeforeExecute() { *m.seq = append(*m.seq, "Before") }
-func (m *mockExec) Execute()       { *m.seq = append(*m.seq, "Execute") }
-func (m *mockExec) AfterExecute()  { *m.seq = append(*m.seq, "After") }
+	if cfg.RootDir != wd {
+		t.Fatalf("expected RootDir to be %s, got %s", wd, cfg.RootDir)
+	}
+	if cfg.ConfigFileName != "config.yml" {
+		t.Fatalf("expected ConfigFileName to be config.yml, got %s", cfg.ConfigFileName)
+	}
+	if cfg.Debug {
+		t.Fatalf("expected Debug to be false")
+	}
+}
 
-func TestBootConfigRegistryEnvExpansion(t *testing.T) {
+func TestNewConfigWithCommand(t *testing.T) {
+	wd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	originalArgs := os.Args
+	originalCommandLine := flag.CommandLine
+	defer func() {
+		os.Args = originalArgs
+		flag.CommandLine = originalCommandLine
+	}()
+
+	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
+	os.Args = []string{
+		"cmd",
+		"-rootDir=/tmp/cli-project",
+		"-configFileName=cli.yml",
+		"-debug=true",
+	}
+
+	cfg := NewConfigWithCommand()
+
+	if cfg.RootDir != "/tmp/cli-project" {
+		t.Fatalf("expected RootDir to be /tmp/cli-project, got %s", cfg.RootDir)
+	}
+	if cfg.ConfigFileName != "cli.yml" {
+		t.Fatalf("expected ConfigFileName to be cli.yml, got %s", cfg.ConfigFileName)
+	}
+	if !cfg.Debug {
+		t.Fatalf("expected Debug to be true")
+	}
+
+	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
+	os.Args = []string{"cmd"}
+
+	defaultCfg := NewConfigWithCommand()
+
+	if defaultCfg.RootDir != wd {
+		t.Fatalf("expected default RootDir to be %s, got %s", wd, defaultCfg.RootDir)
+	}
+	if defaultCfg.ConfigFileName != "config.yml" {
+		t.Fatalf("expected default ConfigFileName to be config.yml, got %s", defaultCfg.ConfigFileName)
+	}
+	if defaultCfg.Debug {
+		t.Fatalf("expected default Debug to be false")
+	}
+}
+
+func TestBootConfigLoaderEnvExpansion(t *testing.T) {
 	tmp := t.TempDir()
 	cfg := "database:\n  host: \"${MY_HOST}\"\n"
 	if err := os.WriteFile(filepath.Join(tmp, "config.yml"), []byte(cfg), 0644); err != nil {
@@ -34,62 +100,40 @@ func TestBootConfigRegistryEnvExpansion(t *testing.T) {
 	defer os.Unsetenv("MY_HOST")
 
 	bc := NewConfig(tmp, "config.yml", false)
-	bootConfigRegistry(bc)
+	loader := BootConfigLoader(bc)
 
-	v := config.Registry.GetViper()
-	got := v.GetString("database.host")
-	if got != "localhost" {
-		t.Fatalf("expected database.host to be 'localhost', got '%s'", got)
+	type databaseConfig struct {
+		Host string `mapstructure:"host"`
+	}
+
+	cfgObj := &databaseConfig{}
+	loader.Unmarshal("database", cfgObj)
+	if cfgObj.Host != "localhost" {
+		t.Fatalf("expected database.host to be 'localhost', got '%s'", cfgObj.Host)
 	}
 }
 
-func TestRegistrarExecuteOrder(t *testing.T) {
-	calls := []string{}
-
-	r1 := &mockRegistrar{name: "r1", calls: &calls}
-	r2 := &mockRegistrar{name: "r2", calls: &calls}
-
-	rc := NewRegistrarCenter([]Registrar{r1, r2})
-	rc.Execute()
-
-	expected := []string{"r1:Boot", "r1:Register", "r2:Boot", "r2:Register"}
-	if len(calls) != len(expected) {
-		t.Fatalf("expected calls %v, got %v", expected, calls)
-	}
-	for i := range expected {
-		if calls[i] != expected[i] {
-			t.Fatalf("at %d expected %s got %s", i, expected[i], calls[i])
+func TestBootConfigLoaderPanicWhenFileNotFound(t *testing.T) {
+	defer func() {
+		if recover() == nil {
+			t.Fatalf("expected panic when config file does not exist")
 		}
-	}
+	}()
+
+	BootConfigLoader(NewConfig(t.TempDir(), "missing.yml", false))
 }
 
-func TestBootCallsHooksAndLoadsConfig(t *testing.T) {
-	// prepare temp config
+func TestBootConfigLoaderPanicWhenYamlInvalid(t *testing.T) {
 	tmp := t.TempDir()
-	if err := os.WriteFile(filepath.Join(tmp, "config.yml"), []byte("k: v\n"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(tmp, "config.yml"), []byte("database: ["), 0644); err != nil {
 		t.Fatal(err)
 	}
 
-	seq := []string{}
-	loadCalled := false
-	loadEnv := func() { loadCalled = true }
-	newCfg := func() *Config { return NewConfig(tmp, "config.yml", false) }
-
-	exec := &mockExec{seq: &seq}
-
-	Boot(loadEnv, newCfg, exec)
-
-	if !loadCalled {
-		t.Fatalf("expected loadEnvFunc to be called")
-	}
-
-	expected := []string{"Before", "Execute", "After"}
-	if len(seq) != len(expected) {
-		t.Fatalf("expected seq %v got %v", expected, seq)
-	}
-	for i := range expected {
-		if seq[i] != expected[i] {
-			t.Fatalf("at %d expected %s got %s", i, expected[i], seq[i])
+	defer func() {
+		if recover() == nil {
+			t.Fatalf("expected panic when yaml is invalid")
 		}
-	}
+	}()
+
+	BootConfigLoader(NewConfig(tmp, "config.yml", false))
 }

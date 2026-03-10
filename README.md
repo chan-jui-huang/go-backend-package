@@ -20,7 +20,7 @@ A production-ready Go library providing modular, composable infrastructure compo
 | Package | Purpose | Key Features |
 |---------|---------|--------------|
 | **app** | Lifecycle management | Signal handling, graceful shutdown, callback phases |
-| **booter** | Bootstrap & DI | Config/service registries, YAML parsing, plugin architecture |
+| **booter** | Config bootstrap | YAML parsing, env expansion, config registry |
 | **database** | GORM wrapper | MySQL, PostgreSQL, SQLite drivers, connection pooling |
 | **logger** | Structured logging | Zap, log rotation, console/file output, sampling |
 | **authentication** | JWT auth | Ed25519 signatures, token lifecycle, claims validation |
@@ -48,29 +48,13 @@ package main
 import (
     "github.com/chan-jui-huang/go-backend-package/pkg/app"
     "github.com/chan-jui-huang/go-backend-package/pkg/booter"
-    "github.com/chan-jui-huang/go-backend-package/pkg/booter/service"
 )
 
-// Create a registrar for your application components
-type AppRegistrar struct{}
-
-func (r *AppRegistrar) Boot() {
-    // Initialize your dependencies
-}
-
-func (r *AppRegistrar) Register() {
-    // Register services with service.Registry
-}
-
 func main() {
-    // Bootstrap: load config and initialize services
-    booter.Boot(
-        loadEnv,
-        booter.NewConfigWithCommand,
-        booter.NewRegistrarCenter([]booter.Registrar{
-            &AppRegistrar{},
-        }),
-    )
+    loader := booter.BootConfigLoader(booter.NewConfigWithCommand())
+
+    dbConfig := &DatabaseConfig{}
+    loader.Unmarshal("database", dbConfig)
 
     // Define application lifecycle
     myApp := app.New(
@@ -84,37 +68,28 @@ func main() {
     // Run application
     myApp.Run(func() {
         // Main application logic
-        // Access services: service.Registry.Get("myService")
+        _ = dbConfig
     })
-}
-
-func loadEnv() {
-    // Load .env file or environment variables
 }
 ```
 
 ## Core Architecture
 
-### Dual-Registry System
+### Config Loader
 
-**Config Registry**: Stores application configuration unmarshaled from YAML via Viper
+**Config Loader**: Wraps Viper for configuration unmarshaling
 - Environment variable expansion: `${VAR_NAME}`
-- Type-safe configuration objects
-- Accessed: `config.Registry.Get(key)`
-
-**Service Registry**: Stores initialized service instances (dependency injection container)
-- Stores pointers or functions
-- Accessed: `service.Registry.Set(key, instance)`, `service.Registry.Get(key)`
+- Batch or per-key unmarshaling
+- Accessed through `booter.BootConfigLoader(...)`
 
 ### Bootstrap Flow
 
 ```
-1. Load environment variables
-2. Parse YAML config (with env expansion)
-3. Execute registrars:
-   - Boot() → initialize components
-   - Register() → wire services into registry
-4. Application ready
+1. Build booter config
+2. Read YAML config file
+3. Expand environment variables in YAML
+4. Parse into Viper
+5. Return config loader
 ```
 
 ### Application Lifecycle Phases
@@ -164,7 +139,6 @@ Configuration is loaded from a YAML file (default: `./config.yml`).
 --rootDir string       # Root directory (default: current working directory)
 --configFileName string # Config file name (default: "config.yml")
 --debug bool          # Enable debug mode
---testing bool        # Enable testing mode
 ```
 
 ### Environment Variables
@@ -185,7 +159,7 @@ database:
 
 - No internal cross-package dependencies
 - Each package can be used standalone
-- Only orchestration point: booter's registries
+- `booter` only handles config loading
 
 ### Factory Pattern
 
@@ -194,14 +168,14 @@ All infrastructure packages follow consistent API:
 New(config Config) *Client
 ```
 
-### Plugin Architecture
+### Config Bootstrap
 
-Implement `Registrar` interface for modular startup:
+Load config and unmarshal only the sections you need:
 ```go
-type Registrar interface {
-    Boot()      // Initialize component
-    Register()  // Register with registries
-}
+loader := booter.BootConfigLoader(booter.NewConfigWithCommand())
+
+dbConfig := &database.Config{}
+loader.Unmarshal("database", dbConfig)
 ```
 
 ## Security
@@ -220,9 +194,8 @@ pkg/
 ├── app/              # Application lifecycle
 ├── argon2/           # Password hashing
 ├── authentication/   # JWT authentication
-├── booter/           # Bootstrap & DI
-│   ├── config/       # Config registry
-│   └── service/      # Service registry
+├── booter/           # Config bootstrap
+│   └── config/       # Config loader
 ├── clickhouse/       # ClickHouse client
 ├── database/         # GORM database wrapper
 ├── logger/           # Structured logging
@@ -265,58 +238,47 @@ See [go.mod](go.mod) for complete dependency list.
 ### Initialize Database
 
 ```go
-type DatabaseRegistrar struct{}
+loader := booter.BootConfigLoader(booter.NewConfigWithCommand())
 
-func (r *DatabaseRegistrar) Boot() {}
+dbConfig := &database.Config{}
+loader.Unmarshal("database", dbConfig)
 
-func (r *DatabaseRegistrar) Register() {
-    dbConfig := config.Registry.Get("database").(*database.Config)
-    db := database.New(dbConfig)
-    service.Registry.Set("db", db)
-}
+db := database.New(dbConfig)
 ```
 
 ### Setup Logger
 
 ```go
-type LoggerRegistrar struct{}
+loader := booter.BootConfigLoader(booter.NewConfigWithCommand())
 
-func (r *LoggerRegistrar) Boot() {}
+logConfig := &logger.Config{}
+loader.Unmarshal("logger", logConfig)
 
-func (r *LoggerRegistrar) Register() {
-    logConfig := config.Registry.Get("logger").(*logger.Config)
-    logger, _ := logger.NewLogger(logConfig, logger.JsonEncoder)
-    service.Registry.Set("logger", logger)
-}
+log, _ := logger.NewLogger(logConfig, logger.JsonEncoder)
+_ = log
 ```
 
 ### Configure Authentication
 
 ```go
-type AuthRegistrar struct{}
+loader := booter.BootConfigLoader(booter.NewConfigWithCommand())
 
-func (r *AuthRegistrar) Boot() {}
+authConfig := &authentication.Config{}
+loader.Unmarshal("authentication", authConfig)
 
-func (r *AuthRegistrar) Register() {
-    authConfig := config.Registry.Get("authentication").(*authentication.Config)
-    auth, _ := authentication.NewAuthenticator(authConfig)
-    service.Registry.Set("auth", auth)
-}
+auth, _ := authentication.NewAuthenticator(authConfig)
+_ = auth
 ```
 
 ### Schedule Jobs
 
 ```go
-type SchedulerRegistrar struct{}
+scheduler.Scheduler.BacklogJobs(map[string]scheduler.Job{
+    "cleanup": &CleanupJob{},
+    "sync":    &SyncJob{},
+})
 
-func (r *SchedulerRegistrar) Boot() {}
-
-func (r *SchedulerRegistrar) Register() {
-    scheduler.Scheduler.BacklogJobs(map[string]scheduler.Job{
-        "cleanup": &CleanupJob{},
-        "sync":    &SyncJob{},
-    })
-}
+scheduler.Scheduler.Start()
 ```
 
 ## License
