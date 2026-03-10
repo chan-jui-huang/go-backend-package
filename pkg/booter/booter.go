@@ -6,7 +6,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/chan-jui-huang/go-backend-package/pkg/booter/config"
+	"github.com/chan-jui-huang/go-backend-package/v2/pkg/booter/config"
 	"github.com/spf13/viper"
 )
 

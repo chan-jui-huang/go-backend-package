@@ -1,4 +1,4 @@
-module github.com/chan-jui-huang/go-backend-package
+module github.com/chan-jui-huang/go-backend-package/v2
 
 go 1.25.7
 
