@@ -7,11 +7,11 @@ A production-ready Go library providing modular, composable infrastructure compo
 
 ## Features
 
-- **12 Modular Packages**: Each independent, can be used standalone
+- **11 Modular Packages**: Each independent, can be used standalone
 - **Zero Cross-Package Dependencies**: Composable architecture with no tight coupling
-- **Production-Ready**: Connection pooling, log rotation, graceful shutdown, error handling
+- **Production-Ready**: Connection pooling, log rotation, scheduling, and error handling
 - **Security-First**: Ed25519 JWT auth, Argon2id password hashing, CSPRN random generation
-- **Flexible Lifecycle Management**: Event-driven callbacks for startup/shutdown orchestration
+- **Config-Driven Bootstrap**: YAML loading with environment variable expansion
 - **Database Agnostic**: GORM support for MySQL, PostgreSQL, SQLite
 - **Structured Logging**: Zap-based with log rotation via Lumberjack
 
@@ -19,7 +19,6 @@ A production-ready Go library providing modular, composable infrastructure compo
 
 | Package | Purpose | Key Features |
 |---------|---------|--------------|
-| **app** | Lifecycle management | Signal handling, graceful shutdown, callback phases |
 | **booter** | Config bootstrap | YAML parsing, env expansion, config registry |
 | **database** | GORM wrapper | MySQL, PostgreSQL, SQLite drivers, connection pooling |
 | **logger** | Structured logging | Zap, log rotation, console/file output, sampling |
@@ -46,30 +45,18 @@ go get github.com/chan-jui-huang/go-backend-package
 package main
 
 import (
-    "github.com/chan-jui-huang/go-backend-package/pkg/app"
     "github.com/chan-jui-huang/go-backend-package/pkg/booter"
+    "github.com/chan-jui-huang/go-backend-package/pkg/database"
 )
 
 func main() {
     loader := booter.BootConfigLoader(booter.NewConfigWithCommand())
 
-    dbConfig := &DatabaseConfig{}
+    dbConfig := &database.Config{}
     loader.Unmarshal("database", dbConfig)
 
-    // Define application lifecycle
-    myApp := app.New(
-        []func(){},           // Starting callbacks
-        []func(){},           // Started callbacks
-        []app.SignalCallback{}, // Signal handlers
-        []func(){},           // Async callbacks
-        []func(){},           // Terminated callbacks
-    )
-
-    // Run application
-    myApp.Run(func() {
-        // Main application logic
-        _ = dbConfig
-    })
+    db := database.New(dbConfig)
+    _ = db
 }
 ```
 
@@ -91,17 +78,6 @@ func main() {
 4. Parse into Viper
 5. Return config loader
 ```
-
-### Application Lifecycle Phases
-
-1. **STARTING**: Sequential, blocking setup before main execution
-2. **EXECUTION**: Main application logic in goroutine
-3. **STARTED**: Sequential, blocking setup after main execution starts
-4. **SIGNALS**: Listen for OS signals (SIGINT/SIGTERM), execute gracefully
-5. **ASYNC**: Background tasks (independent goroutines)
-6. **TERMINATED**: Sequential, blocking cleanup on shutdown
-
-See [AGENTS.md](AGENTS.md) for detailed lifecycle diagram.
 
 ## Common Commands
 
@@ -191,7 +167,6 @@ loader.Unmarshal("database", dbConfig)
 
 ```
 pkg/
-├── app/              # Application lifecycle
 ├── argon2/           # Password hashing
 ├── authentication/   # JWT authentication
 ├── booter/           # Config bootstrap
