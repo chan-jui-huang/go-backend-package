@@ -1,6 +1,6 @@
 ## Project Overview
 
-`go-backend-package` is a reusable Go library (1,060 LOC) providing core infrastructure for building production-ready backend services. Extracted from the [Go Backend Framework](https://github.com/chan-jui-huang/go-backend-framework), it's designed as a foundational dependency with modular, composable components. Apache 2.0 licensed. Go 1.25.4 required.
+`go-backend-package` is a reusable Go library (1,888 LOC) providing core infrastructure for building production-ready backend services. Extracted from the [Go Backend Framework](https://github.com/chan-jui-huang/go-backend-framework), it's designed as a foundational dependency with modular, composable components. Apache 2.0 licensed. Go 1.25.4 required.
 
 ## Common Commands
 
@@ -53,88 +53,7 @@ BootConfigLoader() {
 
 ## Package Details
 
-### 1. App Lifecycle (`pkg/app/`)
-Orchestrates application startup, execution, and graceful shutdown.
-
-**Components**:
-- `App` struct: Manages five callback phases via `sync.WaitGroup`
-- `New()`: Accepts five callback slice types for each lifecycle phase
-- `Run(executorFunc)`: Orchestrates phase execution
-
-**Phases** (in order):
-1. Starting callbacks: Run before main execution
-2. Main executor: Runs in goroutine
-3. Started callbacks: Run after main executor starts
-4. Signal callbacks: Listen for OS signals, execute cleanup handlers
-5. Async callbacks: Fire-and-forget goroutines (non-blocking)
-6. Terminated callbacks: Final cleanup after `wg.Wait()` completes
-
-**Signal handling**: Each `SignalCallback` registers signal listeners that trigger context-aware handlers for graceful shutdown.
-
-**Lifecycle Diagram**:
-
-```
-┌────────────────────────────────────────┐
-│        app.Run(executor)               │
-└────────────────────────────────────────┘
-              │
-              ▼
-     ┌────────────────────┐
-     │ PHASE 1: STARTING  │
-     │ Sequential Blocking│
-     └────────────────────┘
-              │
-              ▼
-     ┌────────────────────┐
-     │ PHASE 2: EXECUTION │
-     │ go executor()      │
-     │ + wg.Add(1)        │
-     └────────────────────┘
-              │
-              ▼
-     ┌────────────────────┐
-     │ PHASE 3: STARTED   │
-     │ Sequential Blocking│
-     └────────────────────┘
-              │
-      ┌───────┴───────┐
-      ▼               ▼
-  ┌────────────┐  ┌────────────┐
-  │PHASE 4A:   │  │PHASE 4B:   │
-  │SIGNALS     │  │ASYNC       │
-  │go routine  │  │go routine  │
-  │wg.Add(N)   │  │no wg       │
-  └────────────┘  └────────────┘
-      │
-      └───────┬───────┘
-              ▼
-   ══ MAIN BLOCKING ══
-      wg.Wait()
-              │
-              ▼
-    ┌────────────────────┐
-    │PHASE 5: TERMINATED │
-    │Sequential Blocking │
-    └────────────────────┘
-              │
-              ▼
-        Application Exit
-```
-
-**Phase Characteristics**:
-
-| Phase      | Execution   | Blocking | WaitGroup | Purpose          |
-|------------|-------------|----------|-----------|------------------|
-| STARTING   | Sequential  | Yes      | No        | Pre-startup      |
-| EXECUTION  | Goroutine   | No       | Yes       | Main app         |
-| STARTED    | Sequential  | Yes      | No        | Post-startup     |
-| SIGNALS    | Goroutines  | Yes      | Yes       | Signal handling  |
-| ASYNC      | Goroutines  | No       | No        | Background tasks |
-| TERMINATED | Sequential  | Yes      | No        | Cleanup & exit   |
-
----
-
-### 2. Database (`pkg/database/`)
+### 1. Database (`pkg/database/`)
 GORM-based factory for MySQL, PostgreSQL, SQLite with connection pooling.
 
 **Features**:
@@ -151,7 +70,7 @@ GORM-based factory for MySQL, PostgreSQL, SQLite with connection pooling.
 
 ---
 
-### 3. Logger (`pkg/logger/`)
+### 2. Logger (`pkg/logger/`)
 Zap-based structured logging with lumberjack rotation.
 
 **Features**:
@@ -168,7 +87,7 @@ Zap-based structured logging with lumberjack rotation.
 
 ---
 
-### 4. Authentication (`pkg/authentication/`)
+### 3. Authentication (`pkg/authentication/`)
 JWT authentication using Ed25519 (EdDSA) digital signatures.
 
 **Security approach**:
@@ -188,7 +107,7 @@ JWT authentication using Ed25519 (EdDSA) digital signatures.
 
 ---
 
-### 5. Scheduler (`pkg/scheduler/`)
+### 4. Scheduler (`pkg/scheduler/`)
 Cron job scheduling with second-level precision via robfig/cron/v3.
 
 **Architecture**:
@@ -206,7 +125,7 @@ Cron job scheduling with second-level precision via robfig/cron/v3.
 
 ---
 
-### 6. Pagination (`pkg/pagination/`)
+### 5. Pagination (`pkg/pagination/`)
 Database query pagination with GORM, supporting dynamic filters and ordering.
 
 **Components**:
@@ -224,7 +143,7 @@ Database query pagination with GORM, supporting dynamic filters and ordering.
 
 ---
 
-### 7. Authentication Utilities
+### 6. Authentication Utilities
 
 #### Argon2 (`pkg/argon2/`)
 Password hashing using Argon2id (GPU-resistant, side-channel resistant).
@@ -249,7 +168,7 @@ Cryptographically secure random string generation (crypto/rand CSPRNG).
 
 ---
 
-### 8. Redis (`pkg/redis/`)
+### 7. Redis (`pkg/redis/`)
 Go-redis/v9 client wrapper.
 
 **Factory**: `New(config Config) *redis.Client`
@@ -258,7 +177,7 @@ Go-redis/v9 client wrapper.
 
 ---
 
-### 9. ClickHouse (`pkg/clickhouse/`)
+### 8. ClickHouse (`pkg/clickhouse/`)
 Official ClickHouse Go driver v2 client initialization.
 
 **Features**:
@@ -271,7 +190,7 @@ Official ClickHouse Go driver v2 client initialization.
 
 ---
 
-### 10. Stacktrace (`pkg/stacktrace/`)
+### 9. Stacktrace (`pkg/stacktrace/`)
 Extract stack traces from errors wrapped with pkg/errors.
 
 **Function**: `GetStackStrace(err error) []string` → slice of frame strings (empty for nil errors)
@@ -306,7 +225,7 @@ go-backend-package/
 ├── .github/workflows/
 │   ├── pr-labeler.yml       # Auto-label PRs by branch pattern
 │   └── release-drafter.yml  # Auto-generate release notes
-├── pkg/                     # 12 packages (app, argon2, auth, booter, clickhouse, db, logger, pagination, random, redis, scheduler, stacktrace)
+├── pkg/                     # 11 packages (argon2, authentication, booter, clickhouse, database, logger, pagination, random, redis, scheduler, stacktrace)
 ├── .golangci.yml            # Linter config (5-min timeout, errcheck+gosec)
 ├── go.mod, go.sum
 ├── Makefile
@@ -425,13 +344,12 @@ chore(deps): upgrade Go to 1.25.4
 
 ---
 
-## Usage Example: Application Bootstrap
+## Usage Example: Configuration Bootstrap
 
 ```go
 package main
 
 import (
-    "github.com/chan-jui-huang/go-backend-package/pkg/app"
     "github.com/chan-jui-huang/go-backend-package/pkg/booter"
     "github.com/chan-jui-huang/go-backend-package/pkg/database"
 )
@@ -441,20 +359,8 @@ func main() {
     dbConfig := &database.Config{}
     loader.Unmarshal("database", dbConfig)
 
-    // Define lifecycle callbacks
-    myApp := app.New(
-        []func(){},                   // Starting
-        []func(){},                   // Started
-        []app.SignalCallback{},       // Signal handlers
-        []func(){},                   // Async
-        []func(){},                   // Terminated
-    )
-
-    // Run application
-    myApp.Run(func() {
-        // Main application logic
-        _ = dbConfig
-    })
+    db := database.New(dbConfig)
+    _ = db
 }
 ```
 
@@ -516,18 +422,17 @@ pagination.Execute(&users)
 **go-backend-package** is a production-focused foundational library with:
 
 **Strengths**:
-- ✅ Modular, composable 12-package architecture
+- ✅ Modular, composable 11-package architecture
 - ✅ Consistent APIs (Config structs, New factories)
 - ✅ Security-first (Ed25519, Argon2id, CSPRNG)
-- ✅ Flexible lifecycle management (callback-driven, signal-aware)
+- ✅ Focused bootstrap and infrastructure primitives
 - ✅ Modern tooling (golangci-lint, GitHub automation)
-- ✅ Production-ready (connection pooling, log rotation, graceful shutdown)
+- ✅ Production-ready (connection pooling, log rotation, scheduling)
 
 **Core Abstractions**:
 - Config loader built on top of Viper
-- Lifecycle callbacks for orchestration
 
-**Best Used For**: Building RESTful APIs, microservices, CLIs requiring structured logging, databases, auth, scheduling, and graceful lifecycle management.
+**Best Used For**: Building RESTful APIs, microservices, and CLIs requiring structured logging, databases, auth, scheduling, and configuration loading.
 
 ## Code Modification Rules
 - **Strict Scope:** Do NOT modify code that you were not explicitly asked to change. You may suggest improvements for other parts of the code, but do not apply them without clear confirmation.
