@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/chan-jui-huang/go-backend-package/pkg/pagination"
+	"github.com/chan-jui-huang/go-backend-package/v2/pkg/pagination"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )

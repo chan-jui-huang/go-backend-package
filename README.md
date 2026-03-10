@@ -36,7 +36,7 @@ A production-ready Go library providing modular, composable infrastructure compo
 ### Installation
 
 ```bash
-go get github.com/chan-jui-huang/go-backend-package
+go get github.com/chan-jui-huang/go-backend-package/v2
 ```
 
 ### Basic Usage
@@ -45,8 +45,8 @@ go get github.com/chan-jui-huang/go-backend-package
 package main
 
 import (
-    "github.com/chan-jui-huang/go-backend-package/pkg/booter"
-    "github.com/chan-jui-huang/go-backend-package/pkg/database"
+    "github.com/chan-jui-huang/go-backend-package/v2/pkg/booter"
+    "github.com/chan-jui-huang/go-backend-package/v2/pkg/database"
 )
 
 func main() {
