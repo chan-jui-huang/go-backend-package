@@ -50,43 +50,7 @@ func NewDefaultConfig() *Config {
 	return NewConfig(wd, "config.yml", false)
 }
 
-type NewConfigFunc func() *Config
-type LoadEnvFunc func()
-
-type Registrar interface {
-	Boot()
-	Register()
-}
-
-type RegistrarCenter struct {
-	registrars []Registrar
-}
-
-func NewRegistrarCenter(registrars []Registrar) *RegistrarCenter {
-	return &RegistrarCenter{
-		registrars: registrars,
-	}
-}
-
-func (r *RegistrarCenter) GetRegistrars() []Registrar {
-	return r.registrars
-}
-
-func (r *RegistrarCenter) Execute() {
-	for _, registrar := range r.registrars {
-		registrar.Boot()
-		registrar.Register()
-	}
-}
-
-type RegisterExecutor interface {
-	BeforeExecute()
-	Execute()
-	AfterExecute()
-}
-
-func bootConfigRegistry(booterConfig *Config) {
-	config.Registry.Set("booter", booterConfig)
+func BootConfigLoader(booterConfig *Config) *config.Loader {
 	byteYaml, err := os.ReadFile(path.Join(booterConfig.RootDir, booterConfig.ConfigFileName))
 	if err != nil {
 		panic(err)
@@ -99,17 +63,5 @@ func bootConfigRegistry(booterConfig *Config) {
 		panic(err)
 	}
 
-	config.Registry.SetViper(v)
-}
-
-func Boot(
-	loadEnvFunc LoadEnvFunc,
-	newConfigFunc NewConfigFunc,
-	registrarCenter RegisterExecutor,
-) {
-	loadEnvFunc()
-	bootConfigRegistry(newConfigFunc())
-	registrarCenter.BeforeExecute()
-	registrarCenter.Execute()
-	registrarCenter.AfterExecute()
+	return config.New(v)
 }
