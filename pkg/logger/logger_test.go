@@ -1,4 +1,4 @@
-package logger
+package logger_test
 
 import (
 	"io/ioutil"
@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	logger "github.com/chan-jui-huang/go-backend-package/v2/pkg/logger"
 	"go.uber.org/zap/zapcore"
 )
 
@@ -18,8 +19,8 @@ func TestNewConsoleLoggerEncoders(t *testing.T) {
 		encoder    zapcore.Encoder
 		wantSubstr string
 	}{
-		{"json", JsonEncoder, "\"message\""},
-		{"console", ConsoleEncoder, "hello-console"},
+		{"json", logger.JsonEncoder, "\"message\""},
+		{"console", logger.ConsoleEncoder, "hello-console"},
 	}
 
 	for _, tt := range tests {
@@ -34,18 +35,18 @@ func TestNewConsoleLoggerEncoders(t *testing.T) {
 			os.Stdout = tmpfile
 			defer func() { os.Stdout = orig }()
 
-			cfg := Config{Type: Console, Level: Info}
-			logger, err := NewLogger(cfg, tt.encoder)
+			cfg := logger.Config{Type: logger.Console, Level: logger.Info}
+			loggerInstance, err := logger.NewLogger(cfg, tt.encoder)
 			if err != nil {
 				t.Fatal(err)
 			}
-			defer logger.Sync()
+			defer loggerInstance.Sync()
 
 			// write a message
 			if tt.name == "json" {
-				logger.Info("hello-json")
+				loggerInstance.Info("hello-json")
 			} else {
-				logger.Info("hello-console")
+				loggerInstance.Info("hello-console")
 			}
 
 			// ensure writes flushed
@@ -72,22 +73,22 @@ func TestNewFileLoggerWritesFile(t *testing.T) {
 	defer os.RemoveAll(tmpdir)
 
 	logPath := filepath.Join(tmpdir, "test.log")
-	cfg := Config{
-		Type:       File,
+	cfg := logger.Config{
+		Type:       logger.File,
 		LogPath:    logPath,
 		MaxSize:    1024,
 		MaxBackups: 1,
 		MaxAge:     time.Hour,
 		Compress:   false,
-		Level:      Info,
+		Level:      logger.Info,
 	}
-	logger, err := NewLogger(cfg, JsonEncoder)
+	loggerInstance, err := logger.NewLogger(cfg, logger.JsonEncoder)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer logger.Sync()
+	defer loggerInstance.Sync()
 
-	logger.Info("file-log-message")
+	loggerInstance.Info("file-log-message")
 	// give some time for write
 	time.Sleep(10 * time.Millisecond)
 
@@ -101,14 +102,14 @@ func TestNewFileLoggerWritesFile(t *testing.T) {
 }
 
 func TestSamplingApplied(t *testing.T) {
-	cfg := Config{Type: Console, Level: Info}
+	cfg := logger.Config{Type: logger.Console, Level: logger.Info}
 	// no sampler
-	loggerNoSampler := NewConsoleLogger(cfg, JsonEncoder)
+	loggerNoSampler := logger.NewConsoleLogger(cfg, logger.JsonEncoder)
 	defer loggerNoSampler.Sync()
 	coreNo := reflect.TypeOf(loggerNoSampler.Core()).String()
 
 	// with sampler
-	loggerWithSampler, err := NewLogger(cfg, JsonEncoder, DefaultZapOptions...)
+	loggerWithSampler, err := logger.NewLogger(cfg, logger.JsonEncoder, logger.DefaultZapOptions...)
 	if err != nil {
 		t.Fatal(err)
 	}

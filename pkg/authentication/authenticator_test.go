@@ -1,4 +1,4 @@
-package authentication
+package authentication_test
 
 import (
 	"crypto/ed25519"
@@ -7,20 +7,21 @@ import (
 	"testing"
 	"time"
 
+	authentication "github.com/chan-jui-huang/go-backend-package/v2/pkg/authentication"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/stretchr/testify/require"
 )
 
 func mustB64Key(b []byte) string { return base64.RawURLEncoding.EncodeToString(b) }
 
-func newAuthFromKeys(pub ed25519.PublicKey, priv ed25519.PrivateKey, accessLife time.Duration) (*Authenticator, error) {
-	cfg := Config{
+func newAuthFromKeys(pub ed25519.PublicKey, priv ed25519.PrivateKey, accessLife time.Duration) (*authentication.Authenticator, error) {
+	cfg := authentication.Config{
 		PrivateKey:           mustB64Key(priv),
 		PublicKey:            mustB64Key(pub),
 		AccessTokenLifeTime:  accessLife,
 		RefreshTokenLifeTime: time.Hour,
 	}
-	return NewAuthenticator(cfg)
+	return authentication.NewAuthenticator(cfg)
 }
 
 func TestIssueAndVerifyJwt(t *testing.T) {

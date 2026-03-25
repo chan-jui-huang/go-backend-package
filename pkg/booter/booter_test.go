@@ -1,14 +1,16 @@
-package booter
+package booter_test
 
 import (
 	"flag"
 	"os"
 	"path/filepath"
 	"testing"
+
+	booter "github.com/chan-jui-huang/go-backend-package/v2/pkg/booter"
 )
 
 func TestNewConfig(t *testing.T) {
-	cfg := NewConfig("/tmp/project", "custom.yml", true)
+	cfg := booter.NewConfig("/tmp/project", "custom.yml", true)
 
 	if cfg.RootDir != "/tmp/project" {
 		t.Fatalf("expected RootDir to be /tmp/project, got %s", cfg.RootDir)
@@ -27,7 +29,7 @@ func TestNewDefaultConfig(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cfg := NewDefaultConfig()
+	cfg := booter.NewDefaultConfig()
 
 	if cfg.RootDir != wd {
 		t.Fatalf("expected RootDir to be %s, got %s", wd, cfg.RootDir)
@@ -61,7 +63,7 @@ func TestNewConfigWithCommand(t *testing.T) {
 		"-debug=true",
 	}
 
-	cfg := NewConfigWithCommand()
+	cfg := booter.NewConfigWithCommand()
 
 	if cfg.RootDir != "/tmp/cli-project" {
 		t.Fatalf("expected RootDir to be /tmp/cli-project, got %s", cfg.RootDir)
@@ -76,7 +78,7 @@ func TestNewConfigWithCommand(t *testing.T) {
 	flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ContinueOnError)
 	os.Args = []string{"cmd"}
 
-	defaultCfg := NewConfigWithCommand()
+	defaultCfg := booter.NewConfigWithCommand()
 
 	if defaultCfg.RootDir != wd {
 		t.Fatalf("expected default RootDir to be %s, got %s", wd, defaultCfg.RootDir)
@@ -99,8 +101,8 @@ func TestBootConfigLoaderEnvExpansion(t *testing.T) {
 	os.Setenv("MY_HOST", "localhost")
 	defer os.Unsetenv("MY_HOST")
 
-	bc := NewConfig(tmp, "config.yml", false)
-	loader := BootConfigLoader(bc)
+	bc := booter.NewConfig(tmp, "config.yml", false)
+	loader := booter.BootConfigLoader(bc)
 
 	type databaseConfig struct {
 		Host string `mapstructure:"host"`
@@ -120,7 +122,7 @@ func TestBootConfigLoaderPanicWhenFileNotFound(t *testing.T) {
 		}
 	}()
 
-	BootConfigLoader(NewConfig(t.TempDir(), "missing.yml", false))
+	booter.BootConfigLoader(booter.NewConfig(t.TempDir(), "missing.yml", false))
 }
 
 func TestBootConfigLoaderPanicWhenYamlInvalid(t *testing.T) {
@@ -135,5 +137,5 @@ func TestBootConfigLoaderPanicWhenYamlInvalid(t *testing.T) {
 		}
 	}()
 
-	BootConfigLoader(NewConfig(tmp, "config.yml", false))
+	booter.BootConfigLoader(booter.NewConfig(tmp, "config.yml", false))
 }

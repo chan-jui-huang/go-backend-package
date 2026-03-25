@@ -1,4 +1,4 @@
-package argon2
+package argon2_test
 
 import (
 	"encoding/base64"
@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	argon2lib "golang.org/x/crypto/argon2"
-
+	argon2pkg "github.com/chan-jui-huang/go-backend-package/v2/pkg/argon2"
 	"github.com/stretchr/testify/require"
+	argon2lib "golang.org/x/crypto/argon2"
 )
 
 func TestMakeAndVerifyTableDriven(t *testing.T) {
@@ -25,18 +25,18 @@ func TestMakeAndVerifyTableDriven(t *testing.T) {
 	for _, tc := range cases {
 		c := tc // copy for safety
 		t.Run(c.name, func(t *testing.T) {
-			hash := MakeArgon2IdHash(c.password)
+			hash := argon2pkg.MakeArgon2IdHash(c.password)
 			require.NotEmpty(t, hash)
 			// correct password verifies
-			require.True(t, VerifyArgon2IdHash(c.password, hash))
+			require.True(t, argon2pkg.VerifyArgon2IdHash(c.password, hash))
 			// wrong password does not verify
-			require.False(t, VerifyArgon2IdHash(c.password+"x", hash))
+			require.False(t, argon2pkg.VerifyArgon2IdHash(c.password+"x", hash))
 		})
 	}
 }
 
 func TestMakeArgon2IdHashWithConfigPHCString(t *testing.T) {
-	cfg := &Argon2IdConfig{
+	cfg := &argon2pkg.Argon2IdConfig{
 		Memory:  32 * 1024,
 		Time:    1,
 		Threads: 1,
@@ -44,7 +44,7 @@ func TestMakeArgon2IdHashWithConfigPHCString(t *testing.T) {
 		SaltLen: 8,
 	}
 	password := "phc-test"
-	hash := MakeArgon2IdHashWithConfig(password, cfg)
+	hash := argon2pkg.MakeArgon2IdHashWithConfig(password, cfg)
 	require.NotEmpty(t, hash)
 
 	// PHC string: $argon2id$v=19$m=...,t=...,p=...$<salt>$<hash>
@@ -76,26 +76,26 @@ func TestMakeArgon2IdHashWithConfigPHCString(t *testing.T) {
 	require.Equal(t, int(cfg.KeyLen), len(outHash))
 
 	// verify should succeed
-	require.True(t, VerifyArgon2IdHash(password, hash))
+	require.True(t, argon2pkg.VerifyArgon2IdHash(password, hash))
 }
 
 func TestVerifyArgon2IdHashConstantTimeLike(t *testing.T) {
 	// Use a small but realistic config to keep test fast
-	cfg := &Argon2IdConfig{Memory: 32 * 1024, Time: 1, Threads: 1, KeyLen: 16, SaltLen: 8}
+	cfg := &argon2pkg.Argon2IdConfig{Memory: 32 * 1024, Time: 1, Threads: 1, KeyLen: 16, SaltLen: 8}
 	password := "timing-test"
-	hash := MakeArgon2IdHashWithConfig(password, cfg)
-	require.True(t, VerifyArgon2IdHash(password, hash))
+	hash := argon2pkg.MakeArgon2IdHashWithConfig(password, cfg)
+	require.True(t, argon2pkg.VerifyArgon2IdHash(password, hash))
 
 	iters := 50
 	var durGood time.Duration
 	var durBad time.Duration
 	for i := 0; i < iters; i++ {
 		s := time.Now()
-		VerifyArgon2IdHash(password, hash)
+		argon2pkg.VerifyArgon2IdHash(password, hash)
 		durGood += time.Since(s)
 
 		s = time.Now()
-		VerifyArgon2IdHash(password+"x", hash)
+		argon2pkg.VerifyArgon2IdHash(password+"x", hash)
 		durBad += time.Since(s)
 	}
 	avgGood := durGood / time.Duration(iters)

@@ -1,27 +1,28 @@
-package redis
+package redis_test
 
 import (
 	"testing"
 	"time"
 
+	redis "github.com/chan-jui-huang/go-backend-package/v2/pkg/redis"
 	"github.com/stretchr/testify/require"
 )
 
 func TestNewReturnsClient(t *testing.T) {
-	cfg := Config{Address: "127.0.0.1:6379"}
-	c := New(cfg)
+	cfg := redis.Config{Address: "127.0.0.1:6379"}
+	c := redis.New(cfg)
 	require.NotNil(t, c)
 }
 
 func TestNewClientOptions(t *testing.T) {
-	cfg := Config{
+	cfg := redis.Config{
 		Address:         "localhost:6379",
 		Password:        "secret",
 		DB:              2,
 		MinIdleConns:    5,
 		ConnMaxLifetime: 30 * time.Second,
 	}
-	c := New(cfg)
+	c := redis.New(cfg)
 	opts := c.Options()
 
 	require.Equal(t, cfg.Address, opts.Addr)
@@ -32,8 +33,8 @@ func TestNewClientOptions(t *testing.T) {
 }
 
 func TestNewClientZeroValues(t *testing.T) {
-	cfg := Config{Address: "redis.example:1234"}
-	c := New(cfg)
+	cfg := redis.Config{Address: "redis.example:1234"}
+	c := redis.New(cfg)
 	opts := c.Options()
 
 	require.Equal(t, cfg.Address, opts.Addr)
