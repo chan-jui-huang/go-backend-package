@@ -1,21 +1,22 @@
-package config
+package config_test
 
 import (
 	"testing"
 
+	config "github.com/chan-jui-huang/go-backend-package/v2/pkg/booter/config"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )
 
-type testConfig struct {
-	Name string `mapstructure:"name"`
-}
-
 func TestNew(t *testing.T) {
+	type testConfig struct {
+		Name string `mapstructure:"name"`
+	}
+
 	v := viper.New()
 	v.Set("service.name", "alpha")
 
-	r := New(v)
+	r := config.New(v)
 	cfg := &testConfig{}
 	r.Unmarshal("service", cfg)
 
@@ -23,8 +24,12 @@ func TestNew(t *testing.T) {
 }
 
 func TestLoaderUnmarshal(t *testing.T) {
+	type testConfig struct {
+		Name string `mapstructure:"name"`
+	}
+
 	v := viper.New()
-	r := New(v)
+	r := config.New(v)
 
 	v.Set("reg.name", "beta")
 	cfg := &testConfig{}
@@ -34,11 +39,15 @@ func TestLoaderUnmarshal(t *testing.T) {
 }
 
 func TestLoaderUnmarshalMany(t *testing.T) {
+	type testConfig struct {
+		Name string `mapstructure:"name"`
+	}
+
 	v := viper.New()
 	v.Set("a.name", "one")
 	v.Set("b.name", "two")
 
-	r := New(v)
+	r := config.New(v)
 
 	cfgA := &testConfig{}
 	cfgB := &testConfig{}

@@ -1,21 +1,22 @@
-package database
+package database_test
 
 import (
 	"testing"
 	"time"
 
+	database "github.com/chan-jui-huang/go-backend-package/v2/pkg/database"
 	"gorm.io/gorm/logger"
 )
 
 func TestGetDriverValidAndInvalid(t *testing.T) {
 	// valid
-	if got := GetDriver(MySql); got != MySql {
+	if got := database.GetDriver(database.MySql); got != database.MySql {
 		t.Fatalf("expected MySql, got %v", got)
 	}
-	if got := GetDriver(PgSql); got != PgSql {
+	if got := database.GetDriver(database.PgSql); got != database.PgSql {
 		t.Fatalf("expected PgSql, got %v", got)
 	}
-	if got := GetDriver(Sqlite); got != Sqlite {
+	if got := database.GetDriver(database.Sqlite); got != database.Sqlite {
 		t.Fatalf("expected Sqlite, got %v", got)
 	}
 
@@ -26,39 +27,39 @@ func TestGetDriverValidAndInvalid(t *testing.T) {
 		}
 	}()
 	// This should panic
-	GetDriver(Driver("invalid"))
+	database.GetDriver(database.Driver("invalid"))
 }
 
 func TestGetGormLogLevelMapping(t *testing.T) {
-	if lvl := GetGormLogLevel(Info); lvl != logger.Info {
+	if lvl := database.GetGormLogLevel(database.Info); lvl != logger.Info {
 		t.Fatalf("expected logger.Info, got %v", lvl)
 	}
-	if lvl := GetGormLogLevel(Warn); lvl != logger.Warn {
+	if lvl := database.GetGormLogLevel(database.Warn); lvl != logger.Warn {
 		t.Fatalf("expected logger.Warn, got %v", lvl)
 	}
-	if lvl := GetGormLogLevel(Error); lvl != logger.Error {
+	if lvl := database.GetGormLogLevel(database.Error); lvl != logger.Error {
 		t.Fatalf("expected logger.Error, got %v", lvl)
 	}
-	if lvl := GetGormLogLevel(Silent); lvl != logger.Silent {
+	if lvl := database.GetGormLogLevel(database.Silent); lvl != logger.Silent {
 		t.Fatalf("expected logger.Silent, got %v", lvl)
 	}
 	// default
-	if lvl := GetGormLogLevel(LogLevel("unknown")); lvl != logger.Info {
+	if lvl := database.GetGormLogLevel(database.LogLevel("unknown")); lvl != logger.Info {
 		t.Fatalf("expected default logger.Info, got %v", lvl)
 	}
 }
 
 func TestNewSqliteConfigAppliedAndPool(t *testing.T) {
-	cfg := Config{
-		Driver:          Sqlite,
+	cfg := database.Config{
+		Driver:          database.Sqlite,
 		Database:        "file::memory:",
 		MaxOpenConns:    5,
 		MaxIdleConns:    2,
 		ConnMaxLifetime: time.Minute,
-		LogLevel:        Warn,
+		LogLevel:        database.Warn,
 	}
 
-	db := New(cfg)
+	db := database.New(cfg)
 	if db == nil {
 		t.Fatalf("expected non-nil db")
 	}
@@ -117,5 +118,5 @@ func TestNewInvalidDriverPanics(t *testing.T) {
 			t.Fatalf("expected panic for invalid driver in New")
 		}
 	}()
-	New(Config{Driver: Driver("invalid")})
+	database.New(database.Config{Driver: database.Driver("invalid")})
 }

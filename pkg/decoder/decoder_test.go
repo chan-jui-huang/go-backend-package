@@ -1,8 +1,10 @@
-package decoder
+package decoder_test
 
 import (
 	"testing"
 	"time"
+
+	decoder "github.com/chan-jui-huang/go-backend-package/v2/pkg/decoder"
 )
 
 func TestDecode(t *testing.T) {
@@ -19,7 +21,7 @@ func TestDecode(t *testing.T) {
 	}
 
 	var cfg testConfig
-	err := Decode(input, &cfg)
+	err := decoder.Decode(input, &cfg)
 	if err != nil {
 		t.Fatalf("Decode() error = %v", err)
 	}
@@ -46,7 +48,7 @@ func TestDecodeInvalidTime(t *testing.T) {
 	}
 
 	var cfg testConfig
-	err := Decode(input, &cfg)
+	err := decoder.Decode(input, &cfg)
 	if err == nil {
 		t.Fatal("Decode() error = nil, want non-nil")
 	}

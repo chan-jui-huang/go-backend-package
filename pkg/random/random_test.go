@@ -1,9 +1,11 @@
-package random
+package random_test
 
 import (
 	"regexp"
 	"strconv"
 	"testing"
+
+	random "github.com/chan-jui-huang/go-backend-package/v2/pkg/random"
 )
 
 func TestRandomStringLengthAndCharset(t *testing.T) {
@@ -16,7 +18,7 @@ func TestRandomStringLengthAndCharset(t *testing.T) {
 		n := n
 		t.Run(strconv.Itoa(n), func(t *testing.T) {
 			t.Parallel()
-			s := RandomString(n)
+			s := random.RandomString(n)
 			if len(s) != n {
 				t.Fatalf("RandomString(%d) length = %d, want %d", n, len(s), n)
 			}
@@ -35,7 +37,7 @@ func TestRandomStringUniqueness(t *testing.T) {
 	seen := make(map[string]struct{}, runs)
 
 	for i := 0; i < runs; i++ {
-		s := RandomString(n)
+		s := random.RandomString(n)
 		if len(s) != n {
 			t.Fatalf("RandomString(%d) length = %d, want %d", n, len(s), n)
 		}
