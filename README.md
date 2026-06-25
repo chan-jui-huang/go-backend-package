@@ -248,9 +248,9 @@ _ = auth
 ### Schedule Jobs
 
 ```go
-scheduler.Scheduler.BacklogJobs(map[string]scheduler.Job{
-    "cleanup": &CleanupJob{},
-    "sync":    &SyncJob{},
+scheduler.Scheduler.QueueJobs([]scheduler.Job{
+    &CleanupJob{},
+    &SyncJob{},
 })
 
 scheduler.Scheduler.Start()

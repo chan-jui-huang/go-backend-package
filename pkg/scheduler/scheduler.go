@@ -7,68 +7,78 @@ import (
 )
 
 type Job interface {
-	GetFrequency() string
+	Name() string
+	CronExpression() string
 	Execute()
 }
 
 type scheduler struct {
-	crontab     *cron.Cron
-	backlogJobs map[string]Job
-	jobs        map[string]cron.EntryID
+	crontab    *cron.Cron
+	queuedJobs map[string]Job
+	jobs       map[string]cron.EntryID
 }
 
 var Scheduler *scheduler
 
 func init() {
-	Scheduler = NewScheduler(map[string]Job{})
+	Scheduler = NewScheduler(nil)
 }
 
-func NewScheduler(backlogJobs map[string]Job) *scheduler {
+func NewScheduler(jobs []Job) *scheduler {
 	return &scheduler{
-		crontab:     cron.New(cron.WithSeconds()),
-		backlogJobs: backlogJobs,
-		jobs:        map[string]cron.EntryID{},
+		crontab:    cron.New(cron.WithSeconds()),
+		queuedJobs: newQueuedJobs(jobs),
+		jobs:       map[string]cron.EntryID{},
 	}
 }
 
-func (s *scheduler) BacklogJobs(backlogJobs map[string]Job) {
-	for name, backlogJob := range backlogJobs {
-		s.backlogJobs[name] = backlogJob
+func newQueuedJobs(jobs []Job) map[string]Job {
+	queuedJobs := map[string]Job{}
+	for _, job := range jobs {
+		queuedJobs[job.Name()] = job
+	}
+
+	return queuedJobs
+}
+
+func (s *scheduler) QueueJobs(jobs []Job) {
+	for _, job := range jobs {
+		s.queuedJobs[job.Name()] = job
 	}
 }
 
-func (s *scheduler) RemoveJobs(backlogJobs []string) {
-	for _, name := range backlogJobs {
-		delete(s.backlogJobs, name)
+func (s *scheduler) RemoveQueuedJobs(names []string) {
+	for _, name := range names {
+		delete(s.queuedJobs, name)
 	}
 }
 
-func (s *scheduler) ClearBacklogJobs() {
-	s.backlogJobs = map[string]Job{}
+func (s *scheduler) ClearQueuedJobs() {
+	s.queuedJobs = map[string]Job{}
 }
 
-func (s *scheduler) AddJob(name string, job Job) error {
-	id, err := s.crontab.AddFunc(job.GetFrequency(), job.Execute)
+func (s *scheduler) ScheduleJob(job Job) error {
+	id, err := s.crontab.AddFunc(job.CronExpression(), job.Execute)
 	if err != nil {
 		return err
 	}
-	s.jobs[name] = id
+	s.jobs[job.Name()] = id
 
 	return nil
 }
 
-func (s *scheduler) RemoveJob(name string) {
+func (s *scheduler) UnscheduleJob(name string) {
 	s.crontab.Remove(s.jobs[name])
 	delete(s.jobs, name)
 }
 
 func (s *scheduler) Start() {
-	for name, backlogJob := range s.backlogJobs {
-		if err := s.AddJob(name, backlogJob); err != nil {
+	for _, job := range s.queuedJobs {
+		if err := s.ScheduleJob(job); err != nil {
 			panic(err)
 		}
 	}
-	s.backlogJobs = map[string]Job{}
+	s.queuedJobs = map[string]Job{}
 	s.crontab.Start()
 }
 
