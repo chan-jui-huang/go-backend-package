@@ -112,15 +112,15 @@ Cron job scheduling with second-level precision via robfig/cron/v3.
 
 **Architecture**:
 - Global singleton: `Scheduler` instance initialized in `init()`
-- `Job` interface: `GetFrequency() string` (cron expression), `Execute()` (logic)
-- Backlog pattern: Queue jobs before scheduler starts
-- Lifecycle: `BacklogJobs()` → `Start()` → schedules all → `Stop()` returns context for shutdown
+- `Job` interface: `Name() string`, `CronExpression() string` (cron expression), `Execute()` (logic)
+- Queue pattern: Queue jobs before scheduler starts
+- Lifecycle: `QueueJobs()` → `Start()` → schedules all → `Stop()` returns context for shutdown
 
 **Methods**:
-- `BacklogJobs(map[string]Job)`: Queue jobs before start
+- `QueueJobs([]Job)`: Queue jobs before start
 - `Start()`: Schedules backlog, begins cron execution
-- `AddJob(key, job)`: Add job after start
-- `RemoveJob(key)`: Remove scheduled job
+- `ScheduleJob(job)`: Schedule job after start
+- `UnscheduleJob(key)`: Remove scheduled job
 - `Stop()`: Return shutdown context
 
 ---
@@ -395,10 +395,11 @@ _ = auth
 ```go
 type MyJob struct{}
 
-func (j *MyJob) GetFrequency() string { return "*/5 * * * *" } // Every 5 min
+func (j *MyJob) Name() string { return "myjob" }
+func (j *MyJob) CronExpression() string { return "*/5 * * * *" } // Every 5 min
 func (j *MyJob) Execute() { /* job logic */ }
 
-scheduler.Scheduler.BacklogJobs(map[string]scheduler.Job{"myjob": &MyJob{}})
+scheduler.Scheduler.QueueJobs([]scheduler.Job{&MyJob{}})
 scheduler.Scheduler.Start()
 ```
 

@@ -9,17 +9,19 @@ import (
 )
 
 type dummyJob struct {
-	freq     string
-	executed int32
+	name           string
+	cronExpression string
+	executed       int32
 }
 
-func (j *dummyJob) GetFrequency() string { return j.freq }
-func (j *dummyJob) Execute()             { atomic.AddInt32(&j.executed, 1) }
+func (j *dummyJob) Name() string           { return j.name }
+func (j *dummyJob) CronExpression() string { return j.cronExpression }
+func (j *dummyJob) Execute()               { atomic.AddInt32(&j.executed, 1) }
 
-func TestBacklogJobsAndStart(t *testing.T) {
-	s := scheduler.NewScheduler(map[string]scheduler.Job{})
-	dj := &dummyJob{freq: "*/1 * * * * *"}
-	s.BacklogJobs(map[string]scheduler.Job{"job1": dj})
+func TestQueueJobsAndStart(t *testing.T) {
+	s := scheduler.NewScheduler(nil)
+	dj := &dummyJob{name: "job1", cronExpression: "*/1 * * * * *"}
+	s.QueueJobs([]scheduler.Job{dj})
 	s.Start()
 	defer s.Stop()
 
@@ -32,11 +34,11 @@ func TestBacklogJobsAndStart(t *testing.T) {
 	}
 }
 
-func TestAddAndRemoveJob(t *testing.T) {
-	s := scheduler.NewScheduler(map[string]scheduler.Job{})
-	dj := &dummyJob{freq: "*/1 * * * * *"}
-	if err := s.AddJob("j1", dj); err != nil {
-		t.Fatalf("AddJob error: %v", err)
+func TestScheduleAndUnscheduleJob(t *testing.T) {
+	s := scheduler.NewScheduler(nil)
+	dj := &dummyJob{name: "j1", cronExpression: "*/1 * * * * *"}
+	if err := s.ScheduleJob(dj); err != nil {
+		t.Fatalf("ScheduleJob error: %v", err)
 	}
 
 	s.Start()
@@ -49,7 +51,7 @@ func TestAddAndRemoveJob(t *testing.T) {
 	}
 
 	executedBeforeRemove := atomic.LoadInt32(&dj.executed)
-	s.RemoveJob("j1")
+	s.UnscheduleJob("j1")
 	time.Sleep(1100 * time.Millisecond)
 	executedAfterRemove := atomic.LoadInt32(&dj.executed)
 	s.Stop()
@@ -60,9 +62,9 @@ func TestAddAndRemoveJob(t *testing.T) {
 }
 
 func TestStopReturnsContext(t *testing.T) {
-	s := scheduler.NewScheduler(map[string]scheduler.Job{})
-	dj := &dummyJob{freq: "*/1 * * * * *"}
-	s.BacklogJobs(map[string]scheduler.Job{"j2": dj})
+	s := scheduler.NewScheduler(nil)
+	dj := &dummyJob{name: "j2", cronExpression: "*/1 * * * * *"}
+	s.QueueJobs([]scheduler.Job{dj})
 	s.Start()
 	ctx := s.Stop()
 	if ctx == nil {
