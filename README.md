@@ -3,7 +3,7 @@
 A production-ready Go library providing modular, composable infrastructure components for building backend services. Extracted from the [Go Backend Framework](https://github.com/chan-jui-huang/go-backend-framework).
 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
-[![Go Version](https://img.shields.io/badge/Go-1.25.4-blue.svg)](go.mod)
+[![Go Version](https://img.shields.io/badge/Go-1.27.3-blue.svg)](go.mod)
 
 ## Features
 

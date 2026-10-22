@@ -1,6 +1,6 @@
 ## Project Overview
 
-`go-backend-package` is a reusable Go library (1,888 LOC) providing core infrastructure for building production-ready backend services. Extracted from the [Go Backend Framework](https://github.com/chan-jui-huang/go-backend-framework), it's designed as a foundational dependency with modular, composable components. Apache 2.0 licensed. Go 1.25.4 required.
+`go-backend-package` is a reusable Go library (1,888 LOC) providing core infrastructure for building production-ready backend services. Extracted from the [Go Backend Framework](https://github.com/chan-jui-huang/go-backend-framework), it's designed as a foundational dependency with modular, composable components. Apache 2.0 licensed. Go 1.27.3 required.
 
 ## Common Commands
 
